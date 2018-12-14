@@ -11,7 +11,7 @@ import Foundation
 final public class ReferenceTo<T:Any> {
 	public var value : T
 	
-	init(_ any: T) {
+	public init(_ any: T) {
 		value = any
 	}
 }
@@ -19,7 +19,7 @@ final public class ReferenceTo<T:Any> {
 final public class WeakReferenceTo<T:AnyObject> {
 	public weak var value : T?
 	
-	init(_ anyObject: T) {
+	public init(_ anyObject: T) {
 		value = anyObject
 	}
 }

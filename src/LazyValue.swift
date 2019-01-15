@@ -17,27 +17,14 @@ public enum LazyValueBox<ValueType,Compute> {
 
 
 /// Lazy value type
-public protocol LazyValueType  {
+public protocol LazyValuable  {
 	associatedtype ValueType
 	associatedtype BoxedComputation
 
 	var _valueBox: LazyValueBox<ValueType, BoxedComputation> { get set }
 }
 
-/// Lazy value type that can be resetted into `.notComputed` state
-public protocol ResetableLazyValueType : LazyValueType {
-	var computation : BoxedComputation { get }
-	
-	mutating func reset()
-}
-
-public extension ResetableLazyValueType {
-	public mutating func reset() {
-		_valueBox = LazyValueBox.notComputed(computation)
-	}
-}
-
-public extension LazyValueType where BoxedComputation==() -> ValueType {
+public extension LazyValuable where BoxedComputation==() -> ValueType {
 	public var value : ValueType {
 		mutating get {
 			switch _valueBox {
@@ -55,7 +42,7 @@ public extension LazyValueType where BoxedComputation==() -> ValueType {
 	}
 }
 
-public extension LazyValueType where BoxedComputation==() throws -> ValueType {
+public extension LazyValuable where BoxedComputation==() throws -> ValueType {
 	
 	public var error : Error? {
 		switch _valueBox {
@@ -86,6 +73,19 @@ public extension LazyValueType where BoxedComputation==() throws -> ValueType {
 	}
 }
 
+/// Lazy value type that can be resetted into `.notComputed` state
+public protocol ResetableLazyValuable : LazyValuable {
+	var computation : BoxedComputation { get }
+	
+	mutating func reset()
+}
+
+public extension ResetableLazyValuable {
+	public mutating func reset() {
+		_valueBox = LazyValueBox.notComputed(computation)
+	}
+}
+
 
 // MARK: -
 
@@ -94,7 +94,7 @@ public extension LazyValueType where BoxedComputation==() throws -> ValueType {
 
 	Once is evaluated, stays immutable, computation block is released
 */
-public class LazyValue<ValueType> : LazyValueType {
+public class LazyValue<ValueType> : LazyValuable {
 	public typealias BoxedComputation = () -> ValueType
 	
 	public var _valueBox: LazyValueBox<ValueType, BoxedComputation>
@@ -109,7 +109,7 @@ public class LazyValue<ValueType> : LazyValueType {
 
 	Once is evaluated, stays immutable, computation block is released
 */
-public class LazyThrowableValue<ValueType> : LazyValueType {
+public class LazyThrowableValue<ValueType> : LazyValuable {
 	public typealias BoxedComputation = () throws -> ValueType
 
 	public var _valueBox: LazyValueBox<ValueType, BoxedComputation>
@@ -124,15 +124,12 @@ public class LazyThrowableValue<ValueType> : LazyValueType {
 
 	Once is evaluated, stays immutable, strong reference to a computation block is held
 */
-public class LazyResetableValue<ValueType> : ResetableLazyValueType {
-	public typealias BoxedComputation = () -> ValueType
-	
-	public var _valueBox: LazyValueBox<ValueType, BoxedComputation>
+public class LazyResetableValue<ValueType> : LazyValue<ValueType>, ResetableLazyValuable {
 	public var computation: BoxedComputation
 
-	public init(_ block: @escaping BoxedComputation) {
+	override public init(_ block: @escaping BoxedComputation) {
 		computation = block
-		_valueBox = LazyValueBox<ValueType,BoxedComputation>.notComputed(computation)
+		super.init(block)
 	}
 }
 
@@ -141,16 +138,13 @@ Implementation of lazy throwable evaluation.
 
 Once is evaluated, stays immutable, strong reference to a computation block is held
 */
-public class LazyResetableThrowableValue<ValueType> : ResetableLazyValueType {
+public class LazyResetableThrowableValue<ValueType> : LazyThrowableValue<ValueType>, ResetableLazyValuable {
 	
-	public typealias BoxedComputation = () throws -> ValueType
-	
-	public var _valueBox: LazyValueBox<ValueType, BoxedComputation>
 	public var computation: BoxedComputation
 	
-	public init(_ block: @escaping BoxedComputation) {
+	override public init(_ block: @escaping BoxedComputation) {
 		computation = block
-		_valueBox = LazyValueBox<ValueType,BoxedComputation>.notComputed(computation)
+		super.init(block)
 	}
 }
 

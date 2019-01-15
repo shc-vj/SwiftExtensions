@@ -17,7 +17,7 @@ public enum LazyValueBox<ValueType,Compute> {
 
 
 /// Lazy value type
-public protocol LazyValueType : class {
+public protocol LazyValueType  {
 	associatedtype ValueType
 	associatedtype BoxedComputation
 
@@ -29,27 +29,29 @@ public protocol LazyValueType : class {
 public protocol ResetableLazyValueType : LazyValueType {
 	var computation : BoxedComputation { get set }
 	
-	func reset()
+	mutating func reset()
 }
 
 public extension ResetableLazyValueType {
-	public func reset() {
+	public mutating func reset() {
 		_value = LazyValueBox.notComputed(computation)
 	}
 }
 
 public extension LazyValueType where BoxedComputation==() -> ValueType {
 	public var value : ValueType {
-		switch _value {
-		case .computed(let val):
-			return val
-		case .notComputed(let compute):
-			let value = compute()
-			_value = .computed(value)
-			return value
-			
-		default:
-			fatalError("Can never reach this")
+		mutating get {
+			switch _value {
+			case .computed(let val):
+				return val
+			case .notComputed(let compute):
+				let value = compute()
+				_value = .computed(value)
+				return value
+				
+			default:
+				fatalError("Can never reach this")
+			}
 		}
 	}
 }
@@ -65,7 +67,7 @@ public extension LazyValueType where BoxedComputation==() throws -> ValueType {
 		}
 	}
 	
-	public func tryValue() throws -> ValueType {
+	public mutating func tryValue() throws -> ValueType {
 		switch _value {
 		case .computed(let val):
 			return val
